@@ -290,52 +290,29 @@ __declspec(dllexport) void onFrame (IDXGISwapChain *chain) {
 
 	ImGui::End ();
 
-	ImGui::SetNextWindowSize (ImVec2 (110, 160), ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowPos (ImVec2 (0, 0), ImGuiCond_FirstUseEver);
-	if (ImGui::Begin ("Scores", 0, 0)) {
-		ImGui::Text ("Cool: %d", cools);
-		ImGui::Text ("Fine: %d", fines);
-		ImGui::Text ("Safe: %d", safes);
-		ImGui::Text ("Bad: %d", bads);
-		ImGui::Text ("Wrong: %d", wrongs);
-		ImGui::Text ("Miss: %d", misses);
-		if (ImGui::Button ("Reset")) {
-			cools = 0;
-			fines = 0;
-			safes = 0;
-			bads = 0;
-			wrongs = 0;
-			misses = 0;
-			for (int i = 0; i < COUNTOFARR (timings); i++) {
-				timings[i] = 1.0f;
-				ratings[i] = NA;
-			}
-		}
-		/*
-		ImGui::Checkbox ("Show Colour Picker", &colourPickerOpen);
-		if (colourPickerOpen) {
-			if (ImGui::RadioButton ("Safe", &colourPickerSelected, 0) ||
-		colourPickerSelected == 0) { ImGui::Begin("ColourPicker", 0, 0);
-				ImGui::ColorPicker4("Safe##ColourPicker", (float
-		*)&safeColour.Value, ImGuiColorEditFlags_NoSmallPreview |
-		ImGuiColorEditFlags_NoTooltip); ImGui::End();
-			}
-			if (ImGui::RadioButton ("Fine", &colourPickerSelected, 1) ||
-		colourPickerSelected == 1) { ImGui::Begin("ColourPicker", 0, 0);
-				ImGui::ColorPicker4("Fine##ColourPicker", (float
-		*)&fineColour.Value, ImGuiColorEditFlags_NoSmallPreview |
-		ImGuiColorEditFlags_NoTooltip); ImGui::End();
-			}
-			if (ImGui::RadioButton ("Cool", &colourPickerSelected, 2) ||
-		colourPickerSelected == 2) { ImGui::Begin("ColourPicker", 0, 0);
-				ImGui::ColorPicker4("Cool##ColourPicker", (float
-		*)&coolColour.Value, ImGuiColorEditFlags_NoSmallPreview |
-		ImGuiColorEditFlags_NoTooltip); ImGui::End();
-			}
-		}
-		*/
-	}
-	ImGui::End ();
+	// ImGui::SetNextWindowSize (ImVec2 (110, 160), ImGuiCond_FirstUseEver);
+	// ImGui::SetNextWindowPos (ImVec2 (0, 0), ImGuiCond_FirstUseEver);
+	// if (ImGui::Begin ("Scores", 0, 0)) {
+	// 	ImGui::Text ("Cool: %d", cools);
+	// 	ImGui::Text ("Fine: %d", fines);
+	// 	ImGui::Text ("Safe: %d", safes);
+	// 	ImGui::Text ("Bad: %d", bads);
+	// 	ImGui::Text ("Wrong: %d", wrongs);
+	// 	ImGui::Text ("Miss: %d", misses);
+	// 	if (ImGui::Button ("Reset")) {
+	// 		cools = 0;
+	// 		fines = 0;
+	// 		safes = 0;
+	// 		bads = 0;
+	// 		wrongs = 0;
+	// 		misses = 0;
+	// 		for (int i = 0; i < COUNTOFARR (timings); i++) {
+	// 			timings[i] = 1.0f;
+	// 			ratings[i] = NA;
+	// 		}
+	// 	}
+	// }
+	// ImGui::End ();
 
 	ImGui::EndFrame ();
 	ImGui::Render ();
