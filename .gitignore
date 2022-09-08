@@ -3,3 +3,4 @@
 x86_64-pc-windows
 compile_commands.json
 .cache
+.vscode
