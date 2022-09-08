@@ -339,6 +339,8 @@ __declspec(dllexport) void onFrame (IDXGISwapChain *chain) {
 		if (showHistogram) {
 			OpenHistogramWindow (&showHistogram);
 		}
+		ImGui::SameLine (ImGui::GetWindowWidth() - 80);
+		ImGui::Text ("FPS: %.0f", ImGui::GetIO().Framerate);
 
 		ImDrawList *draw_list = ImGui::GetWindowDrawList ();
 		ImVec2 p = ImGui::GetCursorScreenPos ();
