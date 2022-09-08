@@ -24,6 +24,7 @@ dirs:
 	@mkdir -p "${TARGET}/minhook/src/hde"
 	@mkdir -p "${TARGET}/imgui/backends"
 	@mkdir -p "${TARGET}/tomlc99"
+	@mkdir -p "${TARGET}/implot"
 
 ${TARGET}/%.o: %.cpp
 	@echo BUILD $@
