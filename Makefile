@@ -1,4 +1,5 @@
 OUT = score
+INSTALL = D:/Steam/steamapps/common/Hatsune Miku Project DIVA Mega Mix Plus/mods/score
 CC := gcc
 CXX := g++
 TARGET := x86_64-pc-windows-gnu
@@ -43,3 +44,7 @@ fmt:
 .PHONY: clean
 clean:
 	rm -rf "${TARGET}"
+
+.PHONY: install
+install:
+	@cp -f "${TARGET}/${OUT}.dll" "${INSTALL}/${OUT}.dll"
