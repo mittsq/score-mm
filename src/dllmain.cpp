@@ -5,7 +5,13 @@
 #include <imgui.h>
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_win32.h>
+#include <implot.h>
 #include <iostream>
+#include <vector>
+
+#ifdef __INTELLISENSE__
+#pragma diag_suppress 651
+#endif
 
 SIG_SCAN (sigHitState, 0x14026BC3C,
 		  "\xE8\x00\x00\x00\x00\x48\x8B\x4D\xE8\x89\x01", "x????xxxxxx");
@@ -52,8 +58,9 @@ typedef enum : i32 {
 	NA = 21,
 } hitState;
 
-float timings[40];
-hitState ratings[40];
+const int RECENT_SIZE = 40;
+float timings[RECENT_SIZE];
+hitState ratings[RECENT_SIZE];
 
 float lastTiming = 0.0f;
 bool sliding = false;
@@ -63,11 +70,22 @@ i32 safes = 0;
 i32 bads = 0;
 i32 wrongs = 0;
 i32 misses = 0;
-i32 timingIndex = 0;
+llui timingIndex = 0;
 
 ImColor safeColour = ImColor (252, 54, 110, 184);
 ImColor fineColour = ImColor (0, 251, 55, 184);
 ImColor coolColour = ImColor (94, 241, 251, 184);
+
+int corner = 0;
+bool showHistogram = false;
+float totalSum = 0.0f;
+int notes = 0;
+std::vector<float> allTimings;
+std::vector<float> totalAverages;
+std::vector<float> runningAverages;
+
+float average (float *arr, i32 size);
+void bin (float value);
 
 HOOK (hitState, __fastcall, CheckHitState,
 	  (u64)sigHitState ()
@@ -115,6 +133,19 @@ HOOK (hitState, __fastcall, CheckHitState,
 	timingIndex++;
 	if (timingIndex >= COUNTOFARR (timings) - 1)
 		timingIndex = 0;
+
+	auto scaled = lastTiming * -1000;
+	totalSum += scaled;
+	notes++;
+	bin (scaled);
+	totalAverages.push_back (totalSum / notes);
+
+	if (notes < RECENT_SIZE) {
+		runningAverages.push_back (totalSum / notes);
+	} else {
+		runningAverages.push_back (average (timings, RECENT_SIZE) * -1000);
+	}
+
 	return result;
 }
 
@@ -152,13 +183,16 @@ weirdnessToWindow (float weirdness, float min, float max) {
 	return scaled + min;
 }
 
+void
+bin (float value) {}
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 __declspec(dllexport) void init () {
 	INSTALL_HOOK (CheckHitState);
 	INSTALL_HOOK (CheckHitStateInternal);
-	for (int i = 0; i < COUNTOFARR (timings); i++) {
+	for (llui i = 0; i < COUNTOFARR (timings); i++) {
 		timings[i] = 1.0f;
 		ratings[i] = NA;
 	}
@@ -217,19 +251,92 @@ __declspec(dllexport) void D3DInit (IDXGISwapChain *swapChain,
 	ImGui_ImplDX11_Init (device, pContext);
 }
 
+void
+OpenHistogramWindow (bool *checkbox) {
+	ImGui::SetNextWindowPos (ImVec2 (400, 400), ImGuiCond_Always);
+	ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove;
+	if (ImGui::Begin ("Stats Window", checkbox, flags)) {
+		ImGuiTabBarFlags flags = ImGuiTabBarFlags_NoCloseWithMiddleMouseButton;
+		if (ImGui::BeginTabBar ("##tabs", flags)) {
+			if (ImGui::BeginTabItem ("Histogram")) {
+				if (ImPlot::BeginPlot("Histogram")) {
+					ImPlot::PlotHistogram ("HistogramPlot", allTimings.data (),
+											allTimings.size (), -1, false, true);
+					ImPlot::EndPlot ();
+				}
+				ImGui::EndTabItem ();
+			}
+			if (ImGui::BeginTabItem ("Total Average")) {
+				ImGui::PlotLines ("TotalAveragePlot", totalAverages.data (),
+								  totalAverages.size ());
+				ImGui::EndTabItem ();
+			}
+			if (ImGui::BeginTabItem ("Running Average")) {
+				ImGui::PlotLines ("RunningAveragePlot",
+								  runningAverages.data (),
+								  runningAverages.size ());
+				ImGui::EndTabItem ();
+			}
+			ImGui::EndTabBar ();
+		}
+	}
+	ImGui::End ();
+}
+
 __declspec(dllexport) void onFrame (IDXGISwapChain *chain) {
 	ImGui_ImplDX11_NewFrame ();
 	ImGui_ImplWin32_NewFrame ();
 	ImGui::NewFrame ();
 
-	float mean = average (timings, COUNTOFARR (timings));
-	// auto title = string_format("Judgement Line :: %f", mean);
-	char title[32];
-	sprintf (title, "Judgement Line :: %.0f ms", mean * -1000);
-
-	ImGui::SetNextWindowSize (ImVec2 (700, 70), ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowPos (ImVec2 (0, 0), ImGuiCond_FirstUseEver);
-	if (ImGui::Begin (title, 0, 0)) {
+	ImGuiWindowFlags window_flags
+		= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings
+		  | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+	if (corner != -1) {
+		const float PAD = 10.0f;
+		const ImGuiViewport *viewport = ImGui::GetMainViewport ();
+		ImVec2 work_pos = viewport->WorkPos;
+		ImVec2 work_size = viewport->WorkSize;
+		ImVec2 window_pos, window_pos_pivot;
+		window_pos.x = (corner & 1) ? (work_pos.x + work_size.x - PAD)
+									: (work_pos.x + PAD);
+		window_pos.y = (corner & 2) ? (work_pos.y + work_size.y - PAD)
+									: (work_pos.y + PAD);
+		window_pos_pivot.x = (corner & 1) ? 1.0f : 0.0f;
+		window_pos_pivot.y = (corner & 2) ? 1.0f : 0.0f;
+		ImGui::SetNextWindowSize (ImVec2 (700, 70), ImGuiCond_Always);
+		ImGui::SetNextWindowPos (window_pos, ImGuiCond_Always,
+								 window_pos_pivot);
+		window_flags |= ImGuiWindowFlags_NoMove;
+	}
+	ImGui::SetNextWindowBgAlpha (0.5f);
+	if (ImGui::Begin ("Judgements", 0, window_flags)) {
+		auto label = notes == 0 ? 0.0f : totalAverages.back ();
+		ImGui::AlignTextToFramePadding ();
+		ImGui::Text ("%.0f ms", label);
+		ImGui::SameLine ();
+		if (ImGui::Button ("Reset")) {
+			cools = 0;
+			fines = 0;
+			safes = 0;
+			bads = 0;
+			wrongs = 0;
+			misses = 0;
+			for (llui i = 0; i < COUNTOFARR (timings); i++) {
+				timings[i] = 1.0f;
+				ratings[i] = NA;
+			}
+			timingIndex = 0;
+			totalSum = 0.0f;
+			notes = 0;
+			allTimings.clear ();
+			totalAverages.clear ();
+			runningAverages.clear ();
+		}
+		ImGui::SameLine ();
+		ImGui::Checkbox ("Show histogram", &showHistogram);
+		if (showHistogram) {
+			OpenHistogramWindow (&showHistogram);
+		}
 
 		ImDrawList *draw_list = ImGui::GetWindowDrawList ();
 		ImVec2 p = ImGui::GetCursorScreenPos ();
@@ -249,6 +356,7 @@ __declspec(dllexport) void onFrame (IDXGISwapChain *chain) {
 		float greenEndX = weirdnessToWindow (-0.03f, startX, endX);
 
 		float middleX = weirdnessToWindow (0.0f, startX, endX);
+		float mean = average (timings, COUNTOFARR (timings));
 		float meanX = weirdnessToWindow (mean, startX, endX);
 		float leftOfMeanX = weirdnessToWindow (mean + 0.0025f, startX, endX);
 		float rightOMeanX = weirdnessToWindow (mean - 0.0025f, startX, endX);
@@ -262,7 +370,7 @@ __declspec(dllexport) void onFrame (IDXGISwapChain *chain) {
 								  ImVec2 (greenEndX, horizontalEndY),
 								  coolColour);
 
-		for (int i = 0; i < COUNTOFARR (timings); i++) {
+		for (llui i = 0; i < COUNTOFARR (timings); i++) {
 			if (timings[i] > 0.15f)
 				continue;
 
