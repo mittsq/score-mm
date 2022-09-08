@@ -10,7 +10,7 @@ CXXFLAGS = -std=c++17 -Iminhook/include -Iimgui -Iimgui/backends -Iimplot -Itoml
 CFLAGS = -std=c99 -Iminhook/include -Iimgui -Iimgui/backends -Iimplot -Itomlc99 -Wall -Ofast -DWIN32_LEAN_AND_MEAN -D_WIN32_WINNT=_WIN32_WINNT_WIN7
 LDFLAGS := -shared -static -static-libgcc -s -pthread -lgdi32 -ldwmapi -ld3dcompiler
 
-all: options ${OUT} install
+all: ${OUT} install
 
 .PHONY: options
 options:
