@@ -245,6 +245,7 @@ __declspec(dllexport) void D3DInit (IDXGISwapChain *swapChain,
 	oWndProc
 		= (WNDPROC)SetWindowLongPtrA (window, GWLP_WNDPROC, (LONG_PTR)WndProc);
 	ImGui::CreateContext ();
+	ImPlot::CreateContext ();
 	ImGuiIO &io = ImGui::GetIO ();
 	io.ConfigFlags = ImGuiConfigFlags_NoMouseCursorChange;
 	ImGui_ImplWin32_Init (window);
@@ -259,9 +260,10 @@ OpenHistogramWindow (bool *checkbox) {
 		ImGuiTabBarFlags flags = ImGuiTabBarFlags_NoCloseWithMiddleMouseButton;
 		if (ImGui::BeginTabBar ("##tabs", flags)) {
 			if (ImGui::BeginTabItem ("Histogram")) {
-				if (ImPlot::BeginPlot("Histogram")) {
+				if (ImPlot::BeginPlot ("Histogram")) {
 					ImPlot::PlotHistogram ("HistogramPlot", allTimings.data (),
-											allTimings.size (), -1, false, true);
+										   allTimings.size (), -1, false,
+										   true);
 					ImPlot::EndPlot ();
 				}
 				ImGui::EndTabItem ();
