@@ -7,3 +7,6 @@
 [submodule "tomlc99"]
 	path = tomlc99
 	url = https://github.com/cktan/tomlc99
+[submodule "implot"]
+	path = implot
+	url = https://github.com/epezent/implot.git
