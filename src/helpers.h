@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <toml.h>
 #include <windows.h>
+#include <memory.h>
+#include <string.h>
+#include <stdexcept>
 
 typedef int8_t i8;
 typedef int16_t i16;
@@ -125,3 +128,4 @@ int64_t readConfigInt (toml_table_t *table, char *key, int64_t notFoundValue);
 char *readConfigString (toml_table_t *table, char *key, char *notFoundValue);
 void printColour (int colour, const char *format, ...);
 u32 readUnalignedU32 (void *memory);
+template<typename ... Args> std::string string_format (const std::string& format, Args ... args);

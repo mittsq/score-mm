@@ -222,9 +222,14 @@ __declspec(dllexport) void onFrame (IDXGISwapChain *chain) {
 	ImGui_ImplWin32_NewFrame ();
 	ImGui::NewFrame ();
 
+	float mean = average (timings, COUNTOFARR (timings));
+	// auto title = string_format("Judgement Line :: %f", mean);
+	char title[32];
+	sprintf (title, "Judgement Line :: %.0f ms", mean * -1000);
+
 	ImGui::SetNextWindowSize (ImVec2 (700, 70), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowPos (ImVec2 (0, 0), ImGuiCond_FirstUseEver);
-	if (ImGui::Begin ("Judgement Line", 0, 0)) {
+	if (ImGui::Begin (title, 0, 0)) {
 
 		ImDrawList *draw_list = ImGui::GetWindowDrawList ();
 		ImVec2 p = ImGui::GetCursorScreenPos ();
@@ -244,7 +249,6 @@ __declspec(dllexport) void onFrame (IDXGISwapChain *chain) {
 		float greenEndX = weirdnessToWindow (-0.03f, startX, endX);
 
 		float middleX = weirdnessToWindow (0.0f, startX, endX);
-		float mean = average (timings, COUNTOFARR (timings));
 		float meanX = weirdnessToWindow (mean, startX, endX);
 		float leftOfMeanX = weirdnessToWindow (mean + 0.0025f, startX, endX);
 		float rightOMeanX = weirdnessToWindow (mean - 0.0025f, startX, endX);
