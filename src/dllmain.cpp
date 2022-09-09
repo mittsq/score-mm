@@ -1,5 +1,7 @@
 #include "SigScan.h"
 #include "helpers.h"
+#include <algorithm>
+#include <cmath>
 #include <d3d11.h>
 #include <dxgi.h>
 #include <imgui.h>
@@ -76,7 +78,7 @@ ImColor safeColour = ImColor (252, 54, 110, 184);
 ImColor fineColour = ImColor (0, 251, 55, 184);
 ImColor coolColour = ImColor (94, 241, 251, 184);
 
-int corner = 0;
+const int corner = 0;
 bool showHistogram = false;
 float totalSum = 0.0f;
 int notes = 0;
@@ -182,6 +184,13 @@ weirdnessToWindow (float weirdness, float min, float max) {
 	return scaled + min;
 }
 
+int
+getBins () {
+	auto maxP = std::max_element (allTimings.begin (), allTimings.end ());
+	auto minP = std::min_element (allTimings.begin (), allTimings.end ());
+	return (int)(std::ceil (*maxP) - std::floor (*minP));
+}
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -249,28 +258,35 @@ __declspec(dllexport) void D3DInit (IDXGISwapChain *swapChain,
 }
 
 void
-OpenHistogramWindow (bool *checkbox) {
+OpenHistogramWindow (bool *checkbox, float average) {
 	ImGui::SetNextWindowPos (ImVec2 (400, 400), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSize (ImVec2 (640, 480), ImGuiCond_FirstUseEver);
-	ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove;
+	ImGuiWindowFlags flags = ImGuiWindowFlags_None;
 	if (ImGui::Begin ("Stats Window", checkbox, flags)) {
 		ImGuiTabBarFlags flags = ImGuiTabBarFlags_NoCloseWithMiddleMouseButton;
 		if (ImGui::BeginTabBar ("##tabs", flags)) {
+			auto plotFlags = ImPlotFlags_Crosshairs | ImPlotFlags_NoMenus
+							 | ImPlotFlags_AntiAliased;
 			if (ImGui::BeginTabItem ("Histogram")) {
 				if (ImPlot::BeginPlot ("##TimingHistogram", ImVec2 (-1, 0),
-									   ImPlotFlags_NoLegend)) {
+									   ImPlotFlags_NoLegend | plotFlags)) {
 					ImPlot::PlotHistogram (
 						"##HistogramPlot", allTimings.data (),
-						allTimings.size (), -1, false, false);
+						allTimings.size (), getBins (), false, false);
+					ImPlot::PlotVLines ("Average", &average, 1);
 					ImPlot::EndPlot ();
 				}
 				ImGui::EndTabItem ();
 			}
 			if (ImGui::BeginTabItem ("Averages")) {
-				if (ImPlot::BeginPlot ("##TotalAvPlot")) {
+				if (ImPlot::BeginPlot ("##TotalAvPlot", ImVec2 (-1, 0),
+									   plotFlags)) {
 					ImPlot::SetupLegend (ImPlotLocation_North,
 										 ImPlotLegendFlags_Outside
 											 | ImPlotLegendFlags_Horizontal);
+					auto axes = ImPlotAxisFlags_AutoFit;
+					ImPlot::SetupAxes (nullptr, nullptr, axes, axes);
+					ImPlot::PlotHLines ("##Average", &average, 1);
 					ImPlot::PlotLine ("Total", totalAverages.data (),
 									  totalAverages.size ());
 					ImPlot::PlotLine ("Running", runningAverages.data (),
@@ -290,9 +306,10 @@ __declspec(dllexport) void onFrame (IDXGISwapChain *chain) {
 	ImGui_ImplWin32_NewFrame ();
 	ImGui::NewFrame ();
 
-	ImGuiWindowFlags window_flags
-		= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings
-		  | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration
+									/* | ImGuiWindowFlags_NoSavedSettings */
+									| ImGuiWindowFlags_NoFocusOnAppearing
+									| ImGuiWindowFlags_NoNav;
 	if (corner != -1) {
 		const float PAD = 10.0f;
 		const ImGuiViewport *viewport = ImGui::GetMainViewport ();
@@ -305,10 +322,11 @@ __declspec(dllexport) void onFrame (IDXGISwapChain *chain) {
 									: (work_pos.y + PAD);
 		window_pos_pivot.x = (corner & 1) ? 1.0f : 0.0f;
 		window_pos_pivot.y = (corner & 2) ? 1.0f : 0.0f;
-		ImGui::SetNextWindowSize (ImVec2 (700, 70), ImGuiCond_Always);
-		ImGui::SetNextWindowPos (window_pos, ImGuiCond_Always,
+		ImGui::SetNextWindowSize (ImVec2 (work_size.x / 3.5, work_size.y / 20),
+								  ImGuiCond_Always);
+		ImGui::SetNextWindowPos (window_pos, ImGuiCond_FirstUseEver,
 								 window_pos_pivot);
-		window_flags |= ImGuiWindowFlags_NoMove;
+		// window_flags |= ImGuiWindowFlags_NoMove;
 	}
 	ImGui::SetNextWindowBgAlpha (0.5f);
 	if (ImGui::Begin ("Judgements", 0, window_flags)) {
@@ -317,6 +335,7 @@ __declspec(dllexport) void onFrame (IDXGISwapChain *chain) {
 		ImGui::Text ("%.0f ms", label);
 		ImGui::SameLine ();
 		if (ImGui::Button ("Reset")) {
+			showHistogram = false;
 			cools = 0;
 			fines = 0;
 			safes = 0;
@@ -324,7 +343,7 @@ __declspec(dllexport) void onFrame (IDXGISwapChain *chain) {
 			wrongs = 0;
 			misses = 0;
 			for (llui i = 0; i < COUNTOFARR (timings); i++) {
-				timings[i] = 1.0f;
+				timings[i] = 0.0f;
 				ratings[i] = NA;
 			}
 			timingIndex = 0;
@@ -335,9 +354,13 @@ __declspec(dllexport) void onFrame (IDXGISwapChain *chain) {
 			runningAverages.clear ();
 		}
 		ImGui::SameLine ();
+		if (notes == 0)
+			ImGui::BeginDisabled ();
 		ImGui::Checkbox ("Show stats", &showHistogram);
+		if (notes == 0)
+			ImGui::EndDisabled ();
 		if (showHistogram) {
-			OpenHistogramWindow (&showHistogram);
+			OpenHistogramWindow (&showHistogram, totalAverages.back ());
 		}
 		ImGui::SameLine (ImGui::GetWindowWidth () - 80);
 		ImGui::Text ("FPS: %.0f", ImGui::GetIO ().Framerate);
