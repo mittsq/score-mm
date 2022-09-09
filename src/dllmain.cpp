@@ -96,9 +96,16 @@ HOOK (hitState, __fastcall, CheckHitState,
 	  bool *slide_chain, bool *slide_chain_start, bool *slide_chain_max,
 	  bool *slide_chain_continues) {
 	sliding = *slide;
-	hitState result = originalCheckHitState (
-		a1, a2, a3, a4, a5, a6, multiCount, a8, a9, a10, slide, slide_chain,
-		slide_chain_start, slide_chain_max, slide_chain_continues);
+	auto result = NA;
+	try {
+		result = originalCheckHitState (a1, a2, a3, a4, a5, a6, multiCount, a8,
+										a9, a10, slide, slide_chain,
+										slide_chain_start, slide_chain_max,
+										slide_chain_continues);
+	} catch (const std::exception &e) {
+		std::cerr << e.what () << '\n';
+	}
+
 	if (*slide_chain_continues || sliding)
 		return result;
 	switch (result) {
@@ -152,7 +159,13 @@ HOOK (hitState, __fastcall, CheckHitState,
 
 HOOK (hitState, __stdcall, CheckHitStateInternal, sigHitStateInternal (),
 	  void *a1, void *a2, u16 a3, u16 a4) {
-	hitState result = originalCheckHitStateInternal (a1, a2, a3, a4);
+	auto result = NA;
+	try {
+		result = originalCheckHitStateInternal (a1, a2, a3, a4);
+	} catch (const std::exception &e) {
+		std::cerr << e.what () << '\n';
+	}
+
 	if (result >= Bad || sliding)
 		return result;
 	lastTiming = *(float *)((u64)a2 + 0x18) - *(float *)((u64)a1 + 0x13264);
