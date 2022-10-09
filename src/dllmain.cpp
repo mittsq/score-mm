@@ -274,15 +274,18 @@ void
 OpenHistogramWindow (bool *checkbox, float average) {
 	ImGui::SetNextWindowPos (ImVec2 (400, 400), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSize (ImVec2 (640, 480), ImGuiCond_FirstUseEver);
-	ImGuiWindowFlags flags = ImGuiWindowFlags_None;
-	if (ImGui::Begin ("Stats Window", checkbox, flags)) {
-		ImGuiTabBarFlags flags = ImGuiTabBarFlags_NoCloseWithMiddleMouseButton;
-		if (ImGui::BeginTabBar ("##tabs", flags)) {
-			auto plotFlags = ImPlotFlags_Crosshairs | ImPlotFlags_NoMenus
-							 | ImPlotFlags_AntiAliased;
+	ImGuiWindowFlags wFlags = ImGuiWindowFlags_None;
+	if (ImGui::Begin ("Stats Window", checkbox, wFlags)) {
+		ImGuiTabBarFlags tFlags
+			= ImGuiTabBarFlags_NoCloseWithMiddleMouseButton;
+		if (ImGui::BeginTabBar ("##tabs", tFlags)) {
+			auto pFlags = ImPlotFlags_Crosshairs | ImPlotFlags_NoMenus
+						  | ImPlotFlags_AntiAliased;
+			auto aFlags = ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_NoMenus;
 			if (ImGui::BeginTabItem ("Histogram")) {
 				if (ImPlot::BeginPlot ("##TimingHistogram", ImVec2 (-1, 0),
-									   ImPlotFlags_NoLegend | plotFlags)) {
+									   ImPlotFlags_NoLegend | pFlags)) {
+					ImPlot::SetupAxes ("Latency", "Count", aFlags, aFlags);
 					ImPlot::PlotHistogram (
 						"##HistogramPlot", allTimings.data (),
 						allTimings.size (), getBins (), false, false);
@@ -293,12 +296,11 @@ OpenHistogramWindow (bool *checkbox, float average) {
 			}
 			if (ImGui::BeginTabItem ("Averages")) {
 				if (ImPlot::BeginPlot ("##TotalAvPlot", ImVec2 (-1, 0),
-									   plotFlags)) {
+									   pFlags)) {
 					ImPlot::SetupLegend (ImPlotLocation_North,
 										 ImPlotLegendFlags_Outside
 											 | ImPlotLegendFlags_Horizontal);
-					auto axes = ImPlotAxisFlags_AutoFit;
-					ImPlot::SetupAxes (nullptr, nullptr, axes, axes);
+					ImPlot::SetupAxes ("Time", "Latency", aFlags, aFlags);
 					ImPlot::PlotHLines ("##Average", &average, 1);
 					ImPlot::PlotLine ("Total", totalAverages.data (),
 									  totalAverages.size ());
